@@ -17,27 +17,64 @@ namespace itis {
       throw std::logic_error("hash table load factor must be in range [0...1]");
     }
 
+    buckets_ = std::vector<Bucket>{};
+    buckets_.resize(capacity);
     // Tip: allocate hash-table buckets
   }
 
   std::optional<std::string> HashTable::Search(int key) const {
     // Tip: compute hash code (index) and use linear search
+    int index = hash(key);
+    auto bucket = buckets_[index];
+    for (std::pair<int, std::string> pair: bucket) {
+        if (pair.first == key) {
+            return pair.second;
+        }
+    }
     return std::nullopt;
   }
 
   void HashTable::Put(int key, const std::string &value) {
     // Tip 1: compute hash code (index) to determine which bucket to use
+    int index = hash(key);
     // Tip 2: consider the case when the key exists (read the docs in the header file)
-
+    for (std::pair<int, std::string> &pair: buckets_[index]) {
+      if (pair.first == key) {
+          pair.second = value;
+          return;
+      }
+    }
+    buckets_[index].push_back(std::pair(key, value));
+    num_keys_++;
     if (static_cast<double>(num_keys_) / buckets_.size() >= load_factor_) {
       // Tip 3: recompute hash codes (indices) for key-value pairs (create a new hash-table)
+        std::vector<Bucket> new_buckets = std::vector<Bucket>{};
+        auto new_size = buckets_.size() * kGrowthCoefficient;
+        new_buckets.resize(new_size);
+        for (Bucket &bucket: buckets_) {
+            for (std::pair<int, std::string> &pair: bucket) {
+                int new_index = utils::hash(pair.first, new_size);
+                new_buckets[new_index].push_back(pair);
+
+            }
+        }
+        buckets_ = new_buckets;
       // Tip 4: use utils::hash(key, size) to compute new indices for key-value pairs
     }
   }
 
   std::optional<std::string> HashTable::Remove(int key) {
     // Tip 1: compute hash code (index) to determine which bucket to use
+    int index = hash(key);
     // TIp 2: find the key-value pair to remove and make a copy of value to return
+    for(std::pair<int, std::string> &pair: buckets_[index]){
+        if (pair.first == key) {
+            std::string to_return = pair.second;
+            buckets_[index].remove(pair);
+            return to_return;
+        }
+    }
+
     return std::nullopt;
   }
 
